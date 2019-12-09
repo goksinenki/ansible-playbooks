@@ -1,0 +1,32 @@
+---
+
+- name: Create a VIP, pool and pool members
+  hosts: bigip
+  connection: local
+  
+  vars:
+    provider:
+      password: f5adminpassword
+      server:  "{{ inventory_hostname }}"
+      user: admin
+      validate_certs: no
+      server_port: 443
+      
+  tasks:
+    - name: Add members to pool
+      bigip_pool_member:
+        provider: "{{ provider }}"
+        description: "webserver {{ item.name }}"
+        host: "{{ item.host }}"
+        name: "{{ item.name }}"
+        partition: Common
+        pool: pool_name
+        port: 9003
+        reuse_nodes: yes
+      with_items:
+        - host: host_ip1
+          name: host_name1
+        - host: host_ip2
+          name: host_name2
+
+      delegate_to: localhost

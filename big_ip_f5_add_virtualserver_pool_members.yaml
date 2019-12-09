@@ -1,0 +1,52 @@
+---
+
+- name: Create a VIP, pool and pool members
+  hosts: bigip
+  connection: local
+  
+  vars:
+    provider:
+      password: f5adminpassword
+      server:  "{{ inventory_hostname }}"
+      user: admin
+      validate_certs: no
+      server_port: 443
+      
+  tasks:
+    - name: Create a pool
+      bigip_pool:
+        provider: "{{ provider }}"
+        lb_method: round-robin
+        name: pool_name
+        slow_ramp_time: 120
+        monitors:
+          - tcp
+      delegate_to: localhost
+
+    - name: Add members to pool
+      bigip_pool_member:
+        provider: "{{ provider }}"
+        description: "webserver {{ item.name }}"
+        host: "{{ item.host }}"
+        name: "{{ item.name }}"
+        pool: pool_name
+        port: 80
+      with_items:
+        - host: host_ip1
+          name: host_name1
+        - host: host_ip2
+          name: host_name2
+      delegate_to: localhost
+    - name: Create a VIP
+      bigip_virtual_server:
+        provider: "{{ provider }}"
+        description: virtual_server_name
+        destination: virtual_server_ip_address
+        name: virtual_server_name
+        pool: pool_name
+        port: 443
+        snat: Automap
+        profiles:
+          - ssl_profile_name
+          - tcp
+      delegate_to: localhost
